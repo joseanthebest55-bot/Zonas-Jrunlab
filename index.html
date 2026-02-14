@@ -1,108 +1,8 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Modelo de Zonas JRUN LAB - Completo</title>
-
-<style>
-body {
-  background:#111;
-  color:white;
-  font-family:Arial, sans-serif;
-  text-align:center;
-  padding:30px;
-}
-.container {
-  max-width:650px;
-  margin:auto;
-}
-input, select {
-  width:48%;
-  padding:10px;
-  margin:5px 1%;
-  box-sizing:border-box;
-}
-button {
-  width:100%;
-  padding:12px;
-  background:#ff6a00;
-  color:white;
-  border:none;
-  cursor:pointer;
-  font-size:16px;
-  margin-top:10px;
-}
-.result {
-  margin-top:25px;
-  background:#1c1c1c;
-  padding:20px;
-  text-align:left;
-}
-.bar {
-  display:flex;
-  height:30px;
-  margin-top:15px;
-  border-radius:5px;
-  overflow:hidden;
-}
-.zone {
-  height:100%;
-  text-align:center;
-  line-height:30px;
-  color:white;
-  font-weight:bold;
-  font-size:0.9em;
-}
-.z1 {background:#00bfff;}
-.z2 {background:#1e90ff;}
-.z3 {background:#ff4500;}
-.umbral1 {background:#32cd32;}
-.umbral2 {background:#ffa500;}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-<h1>Modelo de Zonas JRUN LAB</h1>
-<p>Calcula VAM y tus zonas reales (Z1-Z3 + Umbrales)</p>
-
-<h3>Introduce tus tiempos:</h3>
-
-<div>
-<label>1K:</label>
-<input type="number" id="min1k" placeholder="Min" /> 
-<input type="number" id="sec1k" placeholder="Seg" />
-</div>
-<div>
-<label>3K:</label>
-<input type="number" id="min3k" placeholder="Min" /> 
-<input type="number" id="sec3k" placeholder="Seg" />
-</div>
-<div>
-<label>5K:</label>
-<input type="number" id="min5k" placeholder="Min" /> 
-<input type="number" id="sec5k" placeholder="Seg" />
-</div>
-<div>
-<label>10K:</label>
-<input type="number" id="min10k" placeholder="Min" /> 
-<input type="number" id="sec10k" placeholder="Seg" />
-</div>
-
 <button onclick="calculate()">Calcular VAM y Zonas</button>
-
-<div class="result" id="output"></div>
-
-<a href="https://wa.link/ds6qw3" 
- style="display:block;background:#ff6a00;padding:12px;color:white;text-decoration:none;margin-top:20px;">
- Solicitar Evaluación JRUN
-</a>
-
-</div>
 
 <script>
 function paceFromSpeed(speed){
+    if(!speed) return "–";
     let paceMin = 60 / speed;
     let min = Math.floor(paceMin);
     let sec = Math.round((paceMin - min) * 60);
@@ -110,15 +10,37 @@ function paceFromSpeed(speed){
     return min+":"+sec+" /km";
 }
 
-// Fórmula Riegel: T2 = T1 * (D2/D1)^1.06
+// Riegel formula
 function predictedSpeed(D_ref, T_ref_min, D_target){
+    if(!D_ref || !T_ref_min) return null;
     let T_target = T_ref_min * Math.pow(D_target/D_ref, 1.06);
     return D_target / (T_target / 60); // km/h
 }
 
 function calculateVAM(){
     let inputs = [
-        {d:1, min:parseFloat(document.getElementById("min1k").value), sec:parseFloat(document.getElementById("sec1k").value)},
-        {d:3, min:parseFloat(document.getElementById("min3k").value), sec:parseFloat(document.getElementById("sec3k").value)},
-        {d:5, min:parseFloat(document.getElementById("min5k").value), sec:parseFloat(document.getElementById("sec5k").value)},
-        {d:10, min:parseFloat(document.getElement
+        {d:1, min:document.getElementById("min1k").value, sec:document.getElementById("sec1k").value},
+        {d:3, min:document.getElementById("min3k").value, sec:document.getElementById("sec3k").value},
+        {d:5, min:document.getElementById("min5k").value, sec:document.getElementById("sec5k").value},
+        {d:10, min:document.getElementById("min10k").value, sec:document.getElementById("sec10k").value}
+    ];
+
+    let speeds = [];
+
+    inputs.forEach(inp=>{
+        let min = parseFloat(inp.min);
+        let sec = parseFloat(inp.sec);
+        if(!isNaN(min) && !isNaN(sec)){
+            let totalMin = min + sec/60;
+            speeds.push({d:inp.d, min:totalMin, speed:inp.d/(totalMin/60)});
+        }
+    });
+
+    if(speeds.length === 0){
+        alert("Introduce al menos un tiempo válido");
+        return null;
+    }
+
+    let vam_estimates = [];
+    for(let i=0;i<speeds.length;i++){
+        for(let j=0;j<speeds.lengt
