@@ -1,24 +1,130 @@
-<button onclick="calculate()">Calcular VAM y Zonas</button>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Modelo de Zonas JRUN LAB</title>
+
+<style>
+body {
+  background:#111;
+  color:white;
+  font-family:Arial, sans-serif;
+  text-align:center;
+  padding:30px;
+}
+.container {
+  max-width:650px;
+  margin:auto;
+}
+img.logo {
+  max-width:180px;
+  margin-bottom:20px;
+}
+input {
+  width:48%;
+  padding:10px;
+  margin:5px 1%;
+  box-sizing:border-box;
+}
+button {
+  width:100%;
+  padding:12px;
+  background:#ff6a00;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-size:16px;
+  margin-top:10px;
+}
+.result {
+  margin-top:25px;
+  background:#1c1c1c;
+  padding:20px;
+  text-align:left;
+  border-radius:8px;
+}
+.bar {
+  display:flex;
+  height:30px;
+  margin-top:15px;
+  border-radius:5px;
+  overflow:hidden;
+}
+.zone {
+  height:100%;
+  text-align:center;
+  line-height:30px;
+  color:white;
+  font-weight:bold;
+  font-size:0.9em;
+}
+.z1 {background:#00bfff;}
+.z2 {background:#1e90ff;}
+.z3 {background:#ff4500;}
+.umbral1 {background:#32cd32;}
+.umbral2 {background:#ffa500;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <!-- TU LOGO AQUI -->
+  <img src="jrunlab-logo.png" class="logo" alt="Logo JRUN LAB">
+
+  <h1>Modelo de Zonas JRUN LAB</h1>
+  <p>Calcula VAM y zonas reales (Z1-Z3 + Umbrales)</p>
+
+  <h3>Introduce tus tiempos (al menos 1):</h3>
+
+  <div>
+    <label>1K:</label>
+    <input type="number" id="min1k" placeholder="Min" />
+    <input type="number" id="sec1k" placeholder="Seg" />
+  </div>
+  <div>
+    <label>3K:</label>
+    <input type="number" id="min3k" placeholder="Min" />
+    <input type="number" id="sec3k" placeholder="Seg" />
+  </div>
+  <div>
+    <label>5K:</label>
+    <input type="number" id="min5k" placeholder="Min" />
+    <input type="number" id="sec5k" placeholder="Seg" />
+  </div>
+  <div>
+    <label>10K:</label>
+    <input type="number" id="min10k" placeholder="Min" />
+    <input type="number" id="sec10k" placeholder="Seg" />
+  </div>
+
+  <button onclick="calculate()">Calcular VAM y Zonas</button>
+  <div class="result" id="output"></div>
+
+  <a href="https://wa.link/ds6qw3"
+     style="display:block;background:#ff6a00;padding:12px;color:white;text-decoration:none;margin-top:20px;">
+     Solicitar Evaluación JRUN
+  </a>
+</div>
 
 <script>
 function paceFromSpeed(speed){
     if(!speed) return "–";
     let paceMin = 60 / speed;
-    let min = Math.floor(paceMin);
-    let sec = Math.round((paceMin - min) * 60);
-    if(sec < 10) sec = "0"+sec;
-    return min+":"+sec+" /km";
+    let m = Math.floor(paceMin);
+    let s = Math.round((paceMin - m) * 60);
+    if(s < 10) s = "0"+s;
+    return m+":"+s+" /km";
 }
 
-// Riegel formula
 function predictedSpeed(D_ref, T_ref_min, D_target){
     if(!D_ref || !T_ref_min) return null;
-    let T_target = T_ref_min * Math.pow(D_target/D_ref, 1.06);
-    return D_target / (T_target / 60); // km/h
+    let T_t = T_ref_min * Math.pow(D_target/D_ref, 1.06);
+    return D_target / (T_t / 60);
 }
 
 function calculateVAM(){
-    let inputs = [
+    const data = [
         {d:1, min:document.getElementById("min1k").value, sec:document.getElementById("sec1k").value},
         {d:3, min:document.getElementById("min3k").value, sec:document.getElementById("sec3k").value},
         {d:5, min:document.getElementById("min5k").value, sec:document.getElementById("sec5k").value},
@@ -27,12 +133,12 @@ function calculateVAM(){
 
     let speeds = [];
 
-    inputs.forEach(inp=>{
-        let min = parseFloat(inp.min);
-        let sec = parseFloat(inp.sec);
+    data.forEach(i => {
+        let min = parseFloat(i.min);
+        let sec = parseFloat(i.sec);
         if(!isNaN(min) && !isNaN(sec)){
-            let totalMin = min + sec/60;
-            speeds.push({d:inp.d, min:totalMin, speed:inp.d/(totalMin/60)});
+            let total = min + sec/60;
+            speeds.push({d:i.d, min:total, speed:i.d/(total/60)});
         }
     });
 
@@ -41,6 +147,38 @@ function calculateVAM(){
         return null;
     }
 
-    let vam_estimates = [];
+    let estimates = [];
     for(let i=0;i<speeds.length;i++){
-        for(let j=0;j<speeds.lengt
+        for(let j=0;j<speeds.length;j++){
+            if(i!==j){
+                let p = predictedSpeed(speeds[i].d, speeds[i].min, speeds[j].d);
+                if(p) estimates.push(p);
+            }
+        }
+    }
+    speeds.forEach(s => { if(s.d <= 3) estimates.push(s.speed); });
+
+    return estimates.reduce((a,b)=>a+b,0)/estimates.length;
+}
+
+function calculate(){
+    let vam = calculateVAM();
+    if(!vam) return;
+
+    let u1 = vam*0.60;
+    let u2 = vam*0.80;
+
+    document.getElementById("output").innerHTML = `
+        <h3>Resultados:</h3>
+        <p><strong>VAM:</strong> ${vam.toFixed(2)} km/h (${paceFromSpeed(vam)})</p>
+        <p><strong>Umbral 1 (60%):</strong> ${paceFromSpeed(u1)}</p>
+        <p><strong>Umbral 2 (80%):</strong> ${paceFromSpeed(u2)}</p>
+        <p><strong>Zona 3 (80-100%):</strong> ${paceFromSpeed(u2)} – ${paceFromSpeed(vam)}</p>
+        <p><strong>Zona 2 (60-80%):</strong> ${paceFromSpeed(u1)} – ${paceFromSpeed(u2)}</p>
+        <p><strong>Zona 1:</strong> Más lento que ${paceFromSpeed(u1)}</p>
+    `;
+}
+</script>
+
+</body>
+</html>
